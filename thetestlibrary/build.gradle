@@ -1,9 +1,8 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
 
 android {
     compileSdkVersion 26
-
-
 
     defaultConfig {
         minSdkVersion 24
@@ -12,7 +11,6 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
@@ -24,6 +22,9 @@ android {
 
 }
 
+version "0.0.3"
+group 'com.frozenkoi.poc.android.thetestlibrary'
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -31,4 +32,35 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.1'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
+}
+
+project.logger.lifecycle('Publication: this.group ' + this.group + " this.name["+this.name+"] this.version["+this.version+"]")
+project.logger.lifecycle('  project version[' + project.version + '] stringVersion['+project.getVersion()+']')
+project.logger.lifecycle('  project.group['+project.getGroup()+']')
+
+publishing {
+    publications {
+        arr_2(MavenPublication) {
+            groupId
+            artifactId this.name
+            artifact("$buildDir/outputs/aar/$artifactId-release.aar")
+
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+
+                project.logger.lifecycle('pomWithXml dependenciesNode['+dependenciesNode+'] artifactFile['+"$buildDir/outputs/aar/$artifactId-release.aar"+']')
+
+                // Iterate over the implementation dependencies (we don't want the test ones), adding a <dependency> node for each
+                configurations.implementation.allDependencies.each {
+                    // Ensure dependencies such as fileTree are not included.
+                    if (it.name != 'unspecified') {
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        dependencyNode.appendNode('version', it.version)
+                    }
+                }
+            }
+        }
+    }
 }
